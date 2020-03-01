@@ -2,37 +2,35 @@ import "@bospieter/ws-helper/styles.css";
 //@ts-ignore
 import { add, initBody } from "@bospieter/ws-helper";
 
-import { interval, fromEvent } from "rxjs";
-import { map, take, mergeMap } from "rxjs/operators";
+import { fromEvent, of } from "rxjs";
+import { mergeMap, delay } from "rxjs/operators";
 
 interface IPoint {
   x: number;
   y: number;
+  timestamp: number;
 }
-initBody("rx-js mergeMap");
+const start = Date.now();
 
-add.button("Button A", "btn_a");
-add.button("Button B", "btn_b");
+initBody("rx-js mergeMap 2");
 
-const btnA = document.getElementById("btn_a");
-const btnB = document.getElementById("btn_b");
+// faking network request for save
+const saveLocation = (location: IPoint) => {
+  return of(location).pipe(delay(1500));
+};
+// streams
+const click$ = fromEvent(document, "click");
 
-const obsA = fromEvent(btnA, "click");
-const obsB = fromEvent(btnB, "click");
-
-const mergedObj = obsA.pipe(
-  mergeMap(eventBtnA => {
-    return obsB.pipe(
-      map(
-        eventBtnB =>
-          eventBtnA.target.id +
-          " - " +
-          eventBtnB.target.id +
-          " time " +
-          Date.now()
-      )
-    );
-  })
-);
-
-mergedObj.subscribe(val => add.li(val));
+click$
+  .pipe(
+    mergeMap((e: MouseEvent) => {
+      return saveLocation({
+        x: e.clientX,
+        y: e.clientY,
+        timestamp: Math.floor((Date.now() - start) / 1000)
+      });
+    })
+  )
+  .subscribe(r =>
+    add.li(`Saved! point( ${r.x},  ${r.y}) time  ${r.timestamp} `)
+  );
